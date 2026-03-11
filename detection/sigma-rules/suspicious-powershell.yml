@@ -1,0 +1,75 @@
+title: Suspicious PowerShell Execution Patterns
+id: 7e2b4a91-d3f8-4c5e-b1a9-6f0d2c8e4b3a
+status: test
+description: >
+    Detects PowerShell usage patterns commonly associated with malicious activity:
+    encoded commands used to obfuscate payloads, download cradles that fetch and execute
+    remote code, and execution policy bypass flags. These are rarely used in legitimate
+    administration without prior approval.
+references:
+    - https://attack.mitre.org/techniques/T1059/001/
+    - https://github.com/SigmaHQ/sigma/wiki/Rule-Creation-Guide
+author: Steven Vik
+date: 2026/03/10
+tags:
+    - attack.execution
+    - attack.t1059.001
+    - attack.defense_evasion
+    - attack.t1027
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_encoded:
+        CommandLine|contains:
+            - '-EncodedCommand'
+            - '-enc '
+            - '-ec '
+            - '-e '
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+    selection_download_cradle:
+        CommandLine|contains:
+            - 'IEX'
+            - 'Invoke-Expression'
+            - 'Invoke-WebRequest'
+            - 'Net.WebClient'
+            - 'DownloadString'
+            - 'DownloadFile'
+            - 'Start-BitsTransfer'
+            - 'curl '
+            - 'wget '
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+    selection_bypass:
+        CommandLine|contains:
+            - '-ExecutionPolicy Bypass'
+            - '-ExecutionPolicy Unrestricted'
+            - '-ep bypass'
+            - 'Set-ExecutionPolicy Bypass'
+            - 'Set-ExecutionPolicy Unrestricted'
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+    selection_hidden:
+        CommandLine|contains:
+            - '-WindowStyle Hidden'
+            - '-w hidden'
+            - '-nop'
+            - '-NoProfile'
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+    condition: selection_encoded or selection_download_cradle or (selection_bypass and selection_hidden)
+fields:
+    - User
+    - CommandLine
+    - ParentImage
+    - ParentCommandLine
+falsepositives:
+    - Configuration management tools (SCCM, Ansible WinRM) may use encoded commands
+    - Legitimate admin scripts with -ExecutionPolicy Bypass (should be documented and whitelisted)
+    - Software deployment tools using download cradle patterns
+level: high

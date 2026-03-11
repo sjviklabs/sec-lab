@@ -1,0 +1,82 @@
+---
+# Role: firewall
+# Purpose: Configure UFW with default-deny incoming and explicit port allowlist.
+
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  tags: firewall
+
+- name: Set default policy — deny incoming
+  community.general.ufw:
+    direction: incoming
+    default: "{{ firewall_default_incoming }}"
+  tags: firewall
+
+- name: Set default policy — allow outgoing
+  community.general.ufw:
+    direction: outgoing
+    default: "{{ firewall_default_outgoing }}"
+  tags: firewall
+
+- name: Allow SSH with rate limiting
+  community.general.ufw:
+    rule: limit
+    port: "{{ firewall_ssh_port }}"
+    proto: tcp
+    comment: "SSH (rate-limited)"
+  when: firewall_ssh_rate_limit
+  tags: firewall
+
+- name: Allow SSH without rate limiting
+  community.general.ufw:
+    rule: allow
+    port: "{{ firewall_ssh_port }}"
+    proto: tcp
+    comment: "SSH"
+  when: not firewall_ssh_rate_limit
+  tags: firewall
+
+- name: Allow configured ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    comment: "{{ item.comment | default('') }}"
+  loop: "{{ firewall_allowed_ports }}"
+  when: firewall_allowed_ports | length > 0
+  tags: firewall
+
+- name: Set logging level
+  community.general.ufw:
+    logging: "{{ firewall_logging }}"
+  tags: firewall
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+  when: firewall_enabled
+  tags: firewall
+
+# --- Verification ---
+
+- name: Check UFW status
+  ansible.builtin.command: ufw status verbose
+  register: ufw_status
+  changed_when: false
+  tags: firewall
+
+- name: Display UFW status
+  ansible.builtin.debug:
+    var: ufw_status.stdout_lines
+  tags: firewall
+
+- name: Assert UFW is active
+  ansible.builtin.assert:
+    that:
+      - "'Status: active' in ufw_status.stdout"
+    fail_msg: "UFW is not active"
+    success_msg: "UFW is active and configured"
+  when: firewall_enabled
+  tags: firewall

@@ -1,0 +1,52 @@
+groups:
+  - name: service-alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job!="prometheus"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down on {{ $labels.instance }}"
+          description: "Prometheus target {{ $labels.job }} on {{ $labels.instance }} has been unreachable for more than 3 minutes."
+
+      - alert: HighErrorRate
+        expr: >
+          (
+            sum by (instance, job) (rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum by (instance, job) (rate(http_requests_total[5m]))
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP error rate on {{ $labels.instance }}"
+          description: "More than 5% of HTTP requests are returning 5xx errors on {{ $labels.job }}. Current error rate: {{ $value | printf \"%.1f\" }}%."
+
+      - alert: SSLCertExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL certificate expiring soon on {{ $labels.instance }}"
+          description: "Certificate expires in {{ $value | printf \"%.0f\" }} days. Renew before expiry to avoid service disruption."
+
+      - alert: BackupStale
+        expr: time() - backup_last_success_timestamp_seconds > 90000
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup is stale on {{ $labels.instance }}"
+          description: "Last successful backup was more than 25 hours ago. Verify backup job is running and completing successfully."
+
+      - alert: DiskIOHigh
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.9
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk I/O on {{ $labels.instance }}"
+          description: "Disk {{ $labels.device }} has been at >90% I/O utilization for 15 minutes."
