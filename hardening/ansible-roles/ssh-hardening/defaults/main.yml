@@ -1,0 +1,52 @@
+---
+# Role: ssh-hardening
+# Default variables — override in host_vars or group_vars as needed.
+
+# SSH daemon settings
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_pubkey_authentication: "yes"
+ssh_challenge_response_authentication: "no"
+ssh_use_pam: "yes"
+ssh_x11_forwarding: "no"
+ssh_allow_tcp_forwarding: "no"
+ssh_allow_agent_forwarding: "no"
+ssh_permit_tunnel: "no"
+ssh_permit_user_environment: "no"
+
+# Session limits
+ssh_max_auth_tries: 3
+ssh_login_grace_time: 30
+ssh_max_sessions: 3
+ssh_max_startups: "10:30:60"
+ssh_client_alive_interval: 300
+ssh_client_alive_count_max: 2
+
+# Key algorithms
+ssh_pubkey_accepted_algorithms: "ssh-ed25519,sk-ssh-ed25519@openssh.com"
+ssh_host_key_algorithms: "ssh-ed25519,sk-ssh-ed25519@openssh.com"
+
+# Access control — set to a group or list of users
+ssh_allow_groups: "ssh-users"
+# ssh_allow_users: []
+
+# Logging
+ssh_log_level: "VERBOSE"
+ssh_syslog_facility: "AUTH"
+
+# Banner
+ssh_banner_enabled: true
+ssh_banner_path: /etc/ssh/banner.txt
+ssh_banner_text: |
+  ********************************************************************
+  * This system is for authorized use only.                          *
+  * All activity is monitored and logged.                            *
+  * Unauthorized access will be investigated and reported.           *
+  ********************************************************************
+
+# Fail2ban settings
+ssh_fail2ban_enabled: true
+ssh_fail2ban_maxretry: 3
+ssh_fail2ban_bantime: 3600
+ssh_fail2ban_findtime: 600

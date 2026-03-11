@@ -1,0 +1,28 @@
+---
+# Role: firewall
+# Default variables for UFW firewall configuration.
+
+# Default policies
+firewall_default_incoming: deny
+firewall_default_outgoing: allow
+
+# SSH port — should match ssh-hardening role
+firewall_ssh_port: 22
+
+# Additional ports to allow (list of dicts)
+# Each entry needs: port, proto (tcp/udp), and an optional comment.
+# Example:
+#   firewall_allowed_ports:
+#     - { port: 443, proto: tcp, comment: "HTTPS" }
+#     - { port: 9090, proto: tcp, comment: "Wazuh agent" }
+#     - { port: 514, proto: udp, comment: "Syslog" }
+firewall_allowed_ports: []
+
+# Rate limiting for SSH (limits connection attempts)
+firewall_ssh_rate_limit: true
+
+# Logging level: off, low, medium, high, full
+firewall_logging: low
+
+# Whether to enable UFW (set to false to configure without activating)
+firewall_enabled: true

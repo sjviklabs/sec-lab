@@ -1,0 +1,44 @@
+title: Brute Force Authentication Attempts
+id: 3f8a1c2e-9b4d-4e7f-a6c1-8d2e5f0b3a7c
+status: test
+description: >
+    Detects multiple failed authentication attempts from a single source within a short
+    time window, indicating a potential brute force or credential stuffing attack.
+    Threshold is tuned to reduce false positives from mistyped passwords while catching
+    automated attacks.
+references:
+    - https://attack.mitre.org/techniques/T1110/
+    - https://nvd.nist.gov/800-53/Rev4/control/AC-7
+author: Steven Vik
+date: 2026/03/10
+tags:
+    - attack.credential_access
+    - attack.t1110
+    - attack.t1110.001
+    - attack.t1110.003
+logsource:
+    category: authentication
+    product: windows
+detection:
+    selection:
+        EventID:
+            - 4625
+        LogonType:
+            - 2
+            - 3
+            - 10
+    filter_service_accounts:
+        TargetUserName|endswith:
+            - '$'
+    condition: selection and not filter_service_accounts | count(TargetUserName) by SourceAddress > 10
+    timeframe: 10m
+fields:
+    - TargetUserName
+    - SourceAddress
+    - LogonType
+    - WorkstationName
+falsepositives:
+    - Misconfigured service accounts with wrong credentials
+    - Vulnerability scanners or IT tools performing authenticated checks
+    - Users with expired passwords repeatedly failing SSO
+level: medium

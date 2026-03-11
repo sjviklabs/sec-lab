@@ -1,0 +1,77 @@
+---
+# Role: common
+# Purpose: Base configuration applied to all SOC lab hosts.
+# Installs essential packages, sets timezone, enables core services.
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - net-tools
+      - unattended-upgrades
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - jq
+      - tmux
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  tags: packages
+
+- name: Set timezone
+  ansible.builtin.timezone:
+    name: "{{ common_timezone }}"
+  tags: timezone
+
+- name: Ensure SSH service is enabled and running
+  ansible.builtin.systemd:
+    name: ssh
+    state: started
+    enabled: true
+  tags: ssh
+
+- name: Configure unattended-upgrades — periodic settings
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+    owner: root
+    group: root
+    mode: "0644"
+  tags: updates
+
+- name: Configure unattended-upgrades — security only
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//\s*"\${distro_id}:\${distro_codename}-security";'
+    line: '        "${distro_id}:${distro_codename}-security";'
+    state: present
+  tags: updates
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  when: common_set_hostname | default(false)
+  tags: hostname
+
+- name: Ensure /etc/hosts has localhost entry
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.0\.1'
+    line: "127.0.0.1 localhost {{ inventory_hostname }}"
+    state: present
+  tags: hostname
+
+- name: Set default editor to vim
+  ansible.builtin.alternatives:
+    name: editor
+    path: /usr/bin/vim.basic
+  ignore_errors: true
+  tags: packages

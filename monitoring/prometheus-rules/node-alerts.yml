@@ -1,0 +1,56 @@
+groups:
+  - name: node-alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage has exceeded 90% for more than 5 minutes. Current value: {{ $value | printf \"%.1f\" }}%."
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage has exceeded 90% for more than 5 minutes. Current value: {{ $value | printf \"%.1f\" }}%."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} has less than 10% free space. Current free: {{ $value | printf \"%.1f\" }}%."
+
+      - alert: NodeDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.instance }} is down"
+          description: "Target {{ $labels.instance }} has been unreachable for more than 2 minutes."
+
+      - alert: HighNetworkEgress
+        expr: rate(node_network_transmit_bytes_total{device!~"lo|veth.*|br.*"}[5m]) > 50 * 1024 * 1024
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusual egress traffic on {{ $labels.instance }}"
+          description: "Interface {{ $labels.device }} is transmitting more than 50 MB/s sustained for 10 minutes. Current rate: {{ $value | humanize }}B/s. Investigate for potential data exfiltration."
+
+      - alert: UnexpectedReboot
+        expr: node_time_seconds - node_boot_time_seconds < 300
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unexpected reboot detected on {{ $labels.instance }}"
+          description: "Node has been up for less than 5 minutes. Uptime: {{ $value | printf \"%.0f\" }} seconds. Check system logs for crash or unplanned restart."
