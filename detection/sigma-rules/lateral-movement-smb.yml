@@ -1,0 +1,86 @@
+title: Lateral Movement via SMB Admin Shares
+id: a4c9e6f2-1b3d-4a8e-9c7f-5d2b0e6a1f8c
+status: test
+description: >
+    Detects access to administrative SMB shares (C$, ADMIN$, IPC$) and PsExec-like
+    behavior between internal hosts. While admin share access has legitimate uses,
+    it is a primary lateral movement vector and should be monitored, especially
+    between workstations or from unexpected source hosts.
+references:
+    - https://attack.mitre.org/techniques/T1021/002/
+    - https://attack.mitre.org/techniques/T1570/
+author: Steven Vik
+date: 2026/03/10
+tags:
+    - attack.lateral_movement
+    - attack.t1021.002
+    - attack.t1570
+logsource:
+    product: windows
+    service: security
+detection:
+    selection_share_access:
+        EventID: 5140
+        ShareName|contains:
+            - 'C$'
+            - 'ADMIN$'
+    filter_trusted_sources:
+        IpAddress|startswith:
+            - '10.0.0.10'
+            - '10.0.0.11'
+    condition: selection_share_access and not filter_trusted_sources
+fields:
+    - SubjectUserName
+    - IpAddress
+    - ShareName
+    - RelativeTargetName
+    - AccessMask
+falsepositives:
+    - Legitimate PsExec use by authorized administrators (should be documented)
+    - IT management tools that deploy via admin shares
+    - SCCM or similar endpoint management creating temporary services
+level: high
+---
+title: PsExec-like Service Installation
+id: b5d0f7a3-2c4e-5b9f-0d8a-6e3c1f7b2a9d
+status: test
+description: >
+    Detects the creation of services with characteristics matching PsExec or similar
+    remote execution tools. PsExec installs a temporary service (PSEXESVC) on the
+    target host to execute commands remotely.
+references:
+    - https://attack.mitre.org/software/S0029/
+author: Steven Vik
+date: 2026/03/10
+tags:
+    - attack.lateral_movement
+    - attack.execution
+    - attack.t1021.002
+    - attack.t1569.002
+logsource:
+    product: windows
+    service: system
+detection:
+    selection_service:
+        EventID: 7045
+        ServiceName|contains:
+            - 'PSEXESVC'
+            - 'csexec'
+            - 'paexec'
+            - 'remcom'
+    selection_suspicious_service:
+        EventID: 7045
+        ServiceFileName|contains:
+            - '\ADMIN$\'
+            - 'cmd.exe /c'
+            - 'powershell'
+    condition: selection_service or selection_suspicious_service
+fields:
+    - ServiceName
+    - ServiceFileName
+    - AccountName
+falsepositives:
+    - Legitimate PsExec use by authorized administrators (should be documented)
+    - IT management tools that deploy via admin shares
+    - SCCM or similar endpoint management creating temporary services
+level: high

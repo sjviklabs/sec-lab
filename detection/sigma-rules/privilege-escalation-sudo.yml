@@ -1,0 +1,83 @@
+title: Suspicious Sudo Activity
+id: c6e1a8b4-3d5f-6c0a-1e9b-7f4d2a8c3b0e
+status: test
+description: >
+    Detects unexpected sudo usage patterns on Linux systems, including sudo to root
+    from non-administrative users, sudoers file modifications, and sudo authentication
+    failures that may indicate privilege escalation attempts.
+references:
+    - https://attack.mitre.org/techniques/T1548/003/
+    - https://attack.mitre.org/techniques/T1078/003/
+author: Steven Vik
+date: 2026/03/10
+tags:
+    - attack.privilege_escalation
+    - attack.t1548.003
+    - attack.defense_evasion
+logsource:
+    product: linux
+    service: syslog
+detection:
+    selection_sudo_root:
+        process.name: 'sudo'
+        message|contains|all:
+            - 'COMMAND='
+            - 'USER=root'
+    filter_admin_users:
+        user.name:
+            - 'soc-admin'
+            - 'ansible'
+            - 'deploy'
+    condition: selection_sudo_root and not filter_admin_users
+fields:
+    - user.name
+    - message
+    - host.name
+    - process.pid
+falsepositives:
+    - Developers running build tools with sudo (should use dedicated build accounts)
+    - Application installers requiring root access
+level: medium
+---
+title: Sudoers File Modification
+id: d7f2b9c5-4e6a-7d1b-2f0c-8a5e3b9d4c1f
+status: test
+description: >
+    Detects modifications to the sudoers file or files in the sudoers.d directory.
+    Unauthorized changes to sudo configuration can grant persistent elevated access
+    without requiring the root password.
+references:
+    - https://attack.mitre.org/techniques/T1548/003/
+author: Steven Vik
+date: 2026/03/10
+tags:
+    - attack.privilege_escalation
+    - attack.t1548.003
+    - attack.persistence
+logsource:
+    product: linux
+    category: file_change
+detection:
+    selection_sudoers:
+        TargetFilename|startswith:
+            - '/etc/sudoers'
+            - '/etc/sudoers.d/'
+    selection_visudo_bypass:
+        process.name|contains:
+            - 'echo'
+            - 'tee'
+            - 'sed'
+            - 'cp'
+            - 'mv'
+        process.command_line|contains:
+            - 'sudoers'
+    condition: selection_sudoers or selection_visudo_bypass
+fields:
+    - user.name
+    - process.name
+    - process.command_line
+    - TargetFilename
+falsepositives:
+    - Legitimate sudoers changes via configuration management (Ansible, Puppet, Chef)
+    - OS patching updating sudoers.d drop-in files
+level: high

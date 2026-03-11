@@ -1,0 +1,207 @@
+---
+# Role: ssh-hardening
+# Purpose: Enforce SSH hardening baselines via sshd_config and fail2ban.
+
+- name: Ensure ssh-users group exists
+  ansible.builtin.group:
+    name: "{{ ssh_allow_groups }}"
+    state: present
+  when: ssh_allow_groups is defined
+  tags: ssh
+
+- name: Harden sshd_config — Port
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Port '
+    line: "Port {{ ssh_port }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — PermitRootLogin
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: "PermitRootLogin {{ ssh_permit_root_login }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — PasswordAuthentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: "PasswordAuthentication {{ ssh_password_authentication }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — PubkeyAuthentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PubkeyAuthentication'
+    line: "PubkeyAuthentication {{ ssh_pubkey_authentication }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — ChallengeResponseAuthentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?ChallengeResponseAuthentication'
+    line: "ChallengeResponseAuthentication {{ ssh_challenge_response_authentication }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — MaxAuthTries
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MaxAuthTries'
+    line: "MaxAuthTries {{ ssh_max_auth_tries }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — LoginGraceTime
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?LoginGraceTime'
+    line: "LoginGraceTime {{ ssh_login_grace_time }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — ClientAliveInterval
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?ClientAliveInterval'
+    line: "ClientAliveInterval {{ ssh_client_alive_interval }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — ClientAliveCountMax
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?ClientAliveCountMax'
+    line: "ClientAliveCountMax {{ ssh_client_alive_count_max }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — MaxSessions
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MaxSessions'
+    line: "MaxSessions {{ ssh_max_sessions }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — MaxStartups
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MaxStartups'
+    line: "MaxStartups {{ ssh_max_startups }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — X11Forwarding
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?X11Forwarding'
+    line: "X11Forwarding {{ ssh_x11_forwarding }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — AllowTcpForwarding
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?AllowTcpForwarding'
+    line: "AllowTcpForwarding {{ ssh_allow_tcp_forwarding }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — AllowGroups
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?AllowGroups'
+    line: "AllowGroups {{ ssh_allow_groups }}"
+  when: ssh_allow_groups is defined
+  notify: Restart sshd
+  tags: ssh
+
+- name: Harden sshd_config — LogLevel
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?LogLevel'
+    line: "LogLevel {{ ssh_log_level }}"
+  notify: Restart sshd
+  tags: ssh
+
+- name: Deploy SSH banner
+  ansible.builtin.copy:
+    content: "{{ ssh_banner_text }}"
+    dest: "{{ ssh_banner_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: ssh_banner_enabled
+  tags: ssh
+
+- name: Enable SSH banner in sshd_config
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Banner'
+    line: "Banner {{ ssh_banner_path }}"
+  when: ssh_banner_enabled
+  notify: Restart sshd
+  tags: ssh
+
+- name: Validate sshd configuration
+  ansible.builtin.command: sshd -t
+  changed_when: false
+  tags: ssh
+
+# --- Fail2ban ---
+
+- name: Install fail2ban
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+  when: ssh_fail2ban_enabled
+  tags: fail2ban
+
+- name: Configure fail2ban jail for SSH
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/sshd.conf
+    content: |
+      [sshd]
+      enabled  = true
+      port     = {{ ssh_port }}
+      filter   = sshd
+      logpath  = /var/log/auth.log
+      maxretry = {{ ssh_fail2ban_maxretry }}
+      bantime  = {{ ssh_fail2ban_bantime }}
+      findtime = {{ ssh_fail2ban_findtime }}
+    owner: root
+    group: root
+    mode: "0644"
+  when: ssh_fail2ban_enabled
+  notify: Restart fail2ban
+  tags: fail2ban
+
+- name: Ensure fail2ban is enabled and running
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: ssh_fail2ban_enabled
+  tags: fail2ban
+
+# --- Verification ---
+
+- name: Verify SSH is listening on configured port
+  ansible.builtin.command: ss -tlnp
+  register: ssh_listen_check
+  changed_when: false
+  tags: ssh
+
+- name: Assert SSH is listening
+  ansible.builtin.assert:
+    that:
+      - "':' + (ssh_port | string) in ssh_listen_check.stdout"
+    fail_msg: "SSH is not listening on port {{ ssh_port }}"
+    success_msg: "SSH confirmed listening on port {{ ssh_port }}"
+  tags: ssh
