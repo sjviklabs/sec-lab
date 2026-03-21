@@ -1,0 +1,8 @@
+# Relax rules for documentation-focused repo
+MD013: false          # Line length
+MD022: false          # Blanks around headings
+MD031: false          # Blanks around fences
+MD032: false          # Blanks around lists
+MD033: false          # Inline HTML (common in security docs)
+MD040: false          # Fenced code language
+MD041: false          # First line heading
