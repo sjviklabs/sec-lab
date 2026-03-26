@@ -10,7 +10,7 @@ Where this lab is headed. Each item is scoped, justified, and tracked.
 
 **Why:** Individual host logs don't tell the full story. A SIEM turns scattered events into correlated incidents and enables historical threat hunting.
 
-**Status:** Planned
+**Status:** Complete (Wazuh 4.9.2, 7 agents, custom rules, email alerting)
 
 ---
 
