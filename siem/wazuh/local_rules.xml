@@ -1,0 +1,61 @@
+<!-- SJVIK Labs Custom Rules -->
+
+<!-- Sudo to root from non-standard users (maps to Sigma: privilege-escalation-sudo) -->
+<group name="local,syslog,sudo,">
+  <rule id="100100" level="8">
+    <if_sid>5402</if_sid>
+    <match>COMMAND=</match>
+    <match>USER=root</match>
+    <description>Sudo to root executed - privilege escalation check</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>privilege_escalation,</group>
+  </rule>
+
+  <rule id="100101" level="10">
+    <if_sid>5401</if_sid>
+    <match>3 incorrect password attempts</match>
+    <description>Sudo authentication failure - possible privilege escalation attempt</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>privilege_escalation,authentication_failure,</group>
+  </rule>
+</group>
+
+<!-- Sudoers file modification via FIM -->
+<group name="local,syscheck,">
+  <rule id="100110" level="12">
+    <if_sid>550,553,554</if_sid>
+    <match>/etc/sudoers</match>
+    <description>Sudoers file modified - high priority security event</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>privilege_escalation,file_integrity,</group>
+  </rule>
+</group>
+
+<!-- SSH lateral movement indicators -->
+<group name="local,sshd,">
+  <rule id="100120" level="8">
+    <if_sid>5715</if_sid>
+    <srcip>192.168.10.0/24</srcip>
+    <description>SSH login from internal network - potential lateral movement</description>
+    <mitre>
+      <id>T1021.004</id>
+    </mitre>
+    <group>lateral_movement,</group>
+  </rule>
+</group>
+
+<!-- Critical service state changes -->
+<group name="local,service,">
+  <rule id="100130" level="10">
+    <if_sid>5104</if_sid>
+    <match>wazuh-manager|wazuh-indexer|wazuh-dashboard</match>
+    <description>Critical Wazuh service state changed</description>
+    <group>service_availability,</group>
+  </rule>
+</group>
