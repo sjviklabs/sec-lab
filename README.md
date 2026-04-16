@@ -1,6 +1,6 @@
 # SJV SOC Lab
 
-Cybersecurity lab and portfolio built on a self-hosted Proxmox cluster. Running Wazuh SIEM with 7 monitored endpoints, custom detection rules mapped to MITRE ATT&CK, and incident response playbooks.
+Cybersecurity lab and portfolio built on a self-hosted Proxmox cluster. Running Wazuh SIEM with monitored endpoints, custom detection rules mapped to MITRE ATT&CK, and incident response playbooks.
 
 ## What's Here
 
@@ -17,9 +17,9 @@ Cybersecurity lab and portfolio built on a self-hosted Proxmox cluster. Running 
 | Component | Details |
 |-----------|---------|
 | SIEM | Wazuh 4.9.2 all-in-one (manager + indexer + dashboard) |
-| Endpoints | 7 Debian 12 LXC containers on Proxmox |
+| Endpoints | Debian 12 LXC containers on 3-node Proxmox HA cluster |
 | Detection | Built-in rules + custom rules with MITRE ATT&CK mapping |
 | Alerting | Email via msmtp/Gmail for high-severity events |
 | Monitoring | Grafana + Prometheus (infra), Wazuh (security) |
 
-This is a working lab, not a production environment. Everything here is built for learning and demonstrating real skills.
+Everything here comes from running production-grade infrastructure — real configs, real detections, real lessons learned.
