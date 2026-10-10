@@ -1,10 +1,22 @@
 name: Lint
 on: [push, pull_request]
+
+# Read-only token: nothing here needs to write to the repo.
+permissions:
+  contents: read
+
 jobs:
   markdownlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: DavidAnson/markdownlint-cli2-action@v16
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: DavidAnson/markdownlint-cli2-action@b4c9feab76d8025d1e83c653fa3990936df0e6c8 # v16
         with:
           globs: "**/*.md"
+
+  active-response-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Unit-test the Wazuh active response
+        run: python3 -m unittest discover -s siem/wazuh/active-response -v

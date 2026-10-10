@@ -1,0 +1,41 @@
+# Managed by Ansible (ssh-hardening role). Local edits are overwritten.
+#
+# Lives in sshd_config.d and sorts first. sshd keeps the FIRST value it reads
+# for most keywords, and Debian/Ubuntu include sshd_config.d/*.conf at the top
+# of sshd_config, so these settings win over later drop-ins (for example a
+# cloud image's 50-cloudimg-settings.conf) and over the main file.
+#
+# Requires OpenSSH 8.5+ (Debian 12, Ubuntu 22.04+) for PubkeyAcceptedAlgorithms.
+
+Port {{ ssh_port }}
+PermitRootLogin {{ ssh_permit_root_login }}
+PasswordAuthentication {{ ssh_password_authentication }}
+PubkeyAuthentication {{ ssh_pubkey_authentication }}
+ChallengeResponseAuthentication {{ ssh_challenge_response_authentication }}
+UsePAM {{ ssh_use_pam }}
+
+PubkeyAcceptedAlgorithms {{ ssh_pubkey_accepted_algorithms }}
+HostKeyAlgorithms {{ ssh_host_key_algorithms }}
+
+X11Forwarding {{ ssh_x11_forwarding }}
+AllowTcpForwarding {{ ssh_allow_tcp_forwarding }}
+AllowAgentForwarding {{ ssh_allow_agent_forwarding }}
+PermitTunnel {{ ssh_permit_tunnel }}
+PermitUserEnvironment {{ ssh_permit_user_environment }}
+
+MaxAuthTries {{ ssh_max_auth_tries }}
+LoginGraceTime {{ ssh_login_grace_time }}
+MaxSessions {{ ssh_max_sessions }}
+MaxStartups {{ ssh_max_startups }}
+ClientAliveInterval {{ ssh_client_alive_interval }}
+ClientAliveCountMax {{ ssh_client_alive_count_max }}
+{% if ssh_allow_groups %}
+
+AllowGroups {{ ssh_allow_groups }}
+{% endif %}
+
+LogLevel {{ ssh_log_level }}
+SyslogFacility {{ ssh_syslog_facility }}
+{% if ssh_banner_enabled %}
+Banner {{ ssh_banner_path }}
+{% endif %}

@@ -113,13 +113,15 @@ Fail2ban monitors auth logs and bans IPs after repeated failures. It complements
 enabled  = true
 port     = 2222
 filter   = sshd
-logpath  = /var/log/auth.log
+backend  = systemd
 maxretry = 3
 bantime  = 3600
 findtime = 600
 ```
 
 This bans an IP for 1 hour after 3 failures within 10 minutes.
+
+`backend = systemd` reads the journal, so the jail works on hosts without rsyslog (Debian 12's default), where `/var/log/auth.log` does not exist. It needs `python3-systemd`.
 
 Verify bans:
 

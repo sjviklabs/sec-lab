@@ -29,6 +29,9 @@ ssh_host_key_algorithms: "ssh-ed25519,sk-ssh-ed25519@openssh.com"
 
 # Access control — set to a group or list of users
 ssh_allow_groups: "ssh-users"
+# Existing accounts to add to ssh_allow_groups. The role refuses to apply
+# AllowGroups while the group is empty, because that locks out every login.
+ssh_allow_group_members: []
 # ssh_allow_users: []
 
 # Logging
