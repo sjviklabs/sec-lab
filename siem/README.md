@@ -70,7 +70,8 @@ siem/
 │   ├── agent-enrollment.md      # Agent deployment across fleet
 │   ├── local_rules.xml          # Custom detection rules
 │   └── active-response/
-│       └── block-ip.sh          # Active response script
+│       ├── block-ip.py          # Active response: block an alert's source IP
+│       └── test_block_ip.py     # Unit tests (python3 -m unittest)
 ├── sigma-to-wazuh/
 │   ├── README.md                # Conversion methodology
 │   └── converted-rules/        # Wazuh rules from Sigma
