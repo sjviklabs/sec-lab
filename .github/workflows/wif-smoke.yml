@@ -1,27 +1,39 @@
-# Temporary: verifies Workload Identity Federation end to end before merging #16.
-# Runs on the draft PR from test/wif-smoke (the action rejects push events). Delete with the branch.
+# Temporary: verifies Workload Identity Federation end to end (GitHub OIDC ->
+# Anthropic token exchange -> one API call) before merging #16. The action itself
+# refuses to run on PRs that change workflows, so this tests the federation path
+# directly. Delete with the branch.
 name: WIF smoke test
 on:
-  pull_request:
-    types: [opened, synchronize]
+  push:
+    branches: [test/wif-smoke]
 permissions:
   contents: read
-  pull-requests: read
-  issues: read
   id-token: write
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+      ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+      ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+      ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          fetch-depth: 1
-      - name: Claude via WIF (no API key)
-        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1
-        with:
-          prompt: "Reply with exactly the text: WIF OK"
-          claude_args: "--max-turns 1"
-          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
-          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
-          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
-          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+      - name: GitHub OIDC -> Anthropic token -> one API call
+        run: |
+          set -euo pipefail
+          JWT=$(curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" | jq -r .value)
+          echo "::add-mask::$JWT"
+          RESP=$(jq -n --arg a "$JWT" '{grant_type:"urn:ietf:params:oauth:grant-type:jwt-bearer", assertion:$a,
+            federation_rule_id:env.ANTHROPIC_FEDERATION_RULE_ID, organization_id:env.ANTHROPIC_ORGANIZATION_ID,
+            service_account_id:env.ANTHROPIC_SERVICE_ACCOUNT_ID, workspace_id:env.ANTHROPIC_WORKSPACE_ID}' \
+            | curl -sS https://api.anthropic.com/v1/oauth/token -H "content-type: application/json" --data @-)
+          TOKEN=$(echo "$RESP" | jq -r '.access_token // empty')
+          if [ -z "$TOKEN" ]; then echo "Exchange failed: $(echo "$RESP" | jq -c '{type, error}')"; exit 1; fi
+          echo "::add-mask::$TOKEN"
+          echo "Exchange OK: token prefix ${TOKEN:0:13}..., expires_in $(echo "$RESP" | jq -r .expires_in)s"
+          curl -sS https://api.anthropic.com/v1/messages -H "authorization: Bearer $TOKEN" \
+            -H "anthropic-version: 2023-06-01" -H "content-type: application/json" \
+            -d '{"model":"claude-haiku-5-5","max_tokens":20,"messages":[{"role":"user","content":"Reply with exactly: WIF OK"}]}' \
+            | jq -r '.content[]? | select(.type=="text") | .text // empty' | tee /tmp/out.txt
+          grep -q "WIF OK" /tmp/out.txt
