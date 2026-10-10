@@ -33,22 +33,16 @@ jobs:
         with:
           fetch-depth: 1
 
-      # No stored API key: GitHub issues this run a short-lived OIDC token, and
-      # Anthropic Workload Identity Federation exchanges it for API access. The
-      # federation rule only trusts tokens from this repo (org ID pinned) and maps
-      # them to service account sec-lab-ci in a spend-capped workspace. The IDs
-      # below are repository variables, not secrets.
-      - name: Request GitHub OIDC token for Anthropic
-        run: |
-          curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" \
-            | jq -r .value > "$RUNNER_TEMP/anthropic-oidc.jwt"
-
+      # No stored API key. The action exchanges this run's GitHub OIDC token
+      # (id-token: write above) for short-lived Claude API access through
+      # Anthropic Workload Identity Federation. The federation rule trusts only
+      # this repo (org numeric ID pinned) and maps it to service account
+      # sec-lab-ci in a $5/month capped workspace. IDs are repository
+      # variables, not secrets.
       - name: Run Claude Code
         uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1
-        env:
-          ANTHROPIC_IDENTITY_TOKEN_FILE: ${{ runner.temp }}/anthropic-oidc.jwt
-          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
-          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
-          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
-          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+        with:
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
