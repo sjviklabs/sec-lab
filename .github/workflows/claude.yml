@@ -33,7 +33,16 @@ jobs:
         with:
           fetch-depth: 1
 
+      # No stored API key. The action exchanges this run's GitHub OIDC token
+      # (id-token: write above) for short-lived Claude API access through
+      # Anthropic Workload Identity Federation. The federation rule trusts only
+      # this repo (org numeric ID pinned) and maps it to service account
+      # sec-lab-ci in a $5/month capped workspace. IDs are repository
+      # variables, not secrets.
       - name: Run Claude Code
         uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
