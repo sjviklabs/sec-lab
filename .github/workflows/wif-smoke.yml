@@ -1,11 +1,13 @@
 # Temporary: verifies Workload Identity Federation end to end before merging #16.
-# Runs only on pushes to test/wif-smoke. Delete with the branch.
+# Runs on the draft PR from test/wif-smoke (the action rejects push events). Delete with the branch.
 name: WIF smoke test
 on:
-  push:
-    branches: [test/wif-smoke]
+  pull_request:
+    types: [opened, synchronize]
 permissions:
   contents: read
+  pull-requests: read
+  issues: read
   id-token: write
 jobs:
   smoke:
