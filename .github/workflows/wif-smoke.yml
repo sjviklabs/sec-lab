@@ -1,0 +1,25 @@
+# Temporary: verifies Workload Identity Federation end to end before merging #16.
+# Runs only on pushes to test/wif-smoke. Delete with the branch.
+name: WIF smoke test
+on:
+  push:
+    branches: [test/wif-smoke]
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+      - name: Claude via WIF (no API key)
+        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1
+        with:
+          prompt: "Reply with exactly the text: WIF OK"
+          claude_args: "--max-turns 1"
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
